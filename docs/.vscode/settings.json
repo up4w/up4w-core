@@ -1,0 +1,13 @@
+{
+    "markdown.styles": [
+        "markdown.css"
+    ],
+    "cSpell.dictionaryDefinitions": [
+
+    ],
+    "files.exclude": {
+        "*.css": true,
+        "*.pdf": true,
+        "*.html": true
+    }
+}

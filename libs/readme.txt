@@ -1,0 +1,1 @@
+ Download the static library package and unzip files to this directory.
