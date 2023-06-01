@@ -1,5 +1,5 @@
 #pragma once
-#include "../netsvc_types.h"
+#include "../netsvc_core.h"
 
 #if !defined(OXD_SERVICE_DISABLE_HTTPD)
 #include "../../externs/miniposix/core/inet/tinyhttpd.h"

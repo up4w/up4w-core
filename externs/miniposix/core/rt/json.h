@@ -578,6 +578,7 @@ public:
 						return true;
 					}
 	static void		RemoveKeys(const rt::String_Ref& source, const rt::String_Ref& keys_to_exclude, rt::String& removed);
+	static void		RetainKeys(const rt::String_Ref& source, const rt::String_Ref& keys_to_retain, rt::String& out);
 
 	// Derive: create a new json with overrided keys from another json string, duplicated keys will be updated, the rest remains the same
 	template<typename T1,typename T2,int VT>

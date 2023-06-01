@@ -227,47 +227,33 @@ public:
 	~Event(){ ::CloseHandle(hEvent); }
 #else
 protected:
-	pthread_mutex_t	hMutex;
-	pthread_cond_t	hEvent;
-	bool			bSet;
-	bool			bIsPulsed;
+	std::mutex				hMutex;
+	std::condition_variable	hEvent;
+	bool					bSet		= false;
+	bool					bIsPulsed	= false;
 public:	
 	INLFUNC bool WaitSignal(DWORD Timeout = INFINITE)
-	{	bool ret = true;
-		VERIFY(0 == pthread_mutex_lock(&hMutex));
+	{	std::unique_lock<std::mutex> lock(hMutex);
 		if(Timeout == INFINITE)
 		{	while(!bSet)
-			{	if(0 != pthread_cond_wait(&hEvent, &hMutex))
-				{	ret = false;
-					goto END;
-				}
-				if(bIsPulsed){ bIsPulsed = false; goto END; }
-		}	}
-		else
-		{	struct timespec ts;
-			{	struct timeval tv;
-				gettimeofday(&tv, NULL);
-				ts.tv_sec = tv.tv_sec + Timeout/1000;
-				ts.tv_nsec = tv.tv_usec*1000 + (Timeout%1000)*1000000;
-			}
-			while(!bSet)
-			{	if(0 != pthread_cond_timedwait(&hEvent,&hMutex,&ts))
-				{	ret = false;
-					goto END;
-				}
-				if(bIsPulsed){ bIsPulsed = false; goto END; }				
+			{	hEvent.wait(lock);
+				if(bIsPulsed){ bIsPulsed = false; return true; }
 			}	
 		}
-	END:
-		VERIFY(0 == pthread_mutex_unlock(&hMutex));
-		return ret;
+		else
+		{	while(!bSet)
+			{	if(hEvent.wait_for(lock, std::chrono::milliseconds(Timeout)) == std::cv_status::timeout)
+					return true;
+				if(bIsPulsed){ bIsPulsed = false; return true; }				
+			}	
+		}
+		return true;
 	}
 	FORCEINL bool IsSignaled(){ return bSet; }
-	FORCEINL void Pulse(){ VERIFY(0 == pthread_mutex_lock(&hMutex)); bSet = false; bIsPulsed = true; pthread_cond_signal(&hEvent); VERIFY(0 == pthread_mutex_unlock(&hMutex));}
-	FORCEINL void Set(){ VERIFY(0 == pthread_mutex_lock(&hMutex)); bSet = true; pthread_cond_broadcast(&hEvent); VERIFY(0 == pthread_mutex_unlock(&hMutex));}
-	FORCEINL void Reset(){ VERIFY(0 == pthread_mutex_lock(&hMutex)); bSet = false; VERIFY(0 == pthread_mutex_unlock(&hMutex));}
-	Event(){ VERIFY(0==pthread_mutex_init(&hMutex, nullptr)); VERIFY(0 == pthread_cond_init(&hEvent,NULL)); bSet = false; bIsPulsed = false; }
-	~Event(){ pthread_cond_destroy(&hEvent); pthread_mutex_destroy(&hMutex); }
+	FORCEINL void Pulse(){ std::unique_lock<std::mutex> lock(hMutex); bSet = false; bIsPulsed = true; hEvent.notify_one(); }
+	FORCEINL void Set(){ std::unique_lock<std::mutex> lock(hMutex); bSet = true; hEvent.notify_all(); }
+	FORCEINL void Reset(){ std::unique_lock<std::mutex> lock(hMutex); bSet = false; }
+	Event(){};
 #endif
 };
 

@@ -386,6 +386,33 @@ SKIP_THE_KEY:
 		removed += rt::SS("\n}");
 }
 
+void JsonObject::RetainKeys(const rt::String_Ref& source, const rt::String_Ref& keys_to_retain, rt::String& out)
+{
+	rt::String_Ref keys[256];
+	UINT co = keys_to_retain.Split(keys, sizeofArray(keys), ",;|");
+	if (co == 0) { out = "{ }"; return; }
+
+	rt::JsonKeyValuePair kv;
+	rt::JsonObject doc(source);
+	while (doc.GetNextKeyValuePair(kv))
+	{
+		UINT i;
+		for (i = 0; i < co; i++)
+			if (kv.GetKey() == keys[i]) break;
+		if (i >= co) goto SKIP_THE_KEY;
+		if (out.IsEmpty()) { out = rt::SS("{ "); }
+		else { out += rt::SS(",  "); }
+		out += rt::SS("\n  \"") + kv.GetKey() + rt::SS("\": ") + kv.GetValueRaw();
+	SKIP_THE_KEY:
+		continue;
+	}
+
+	if (out.IsEmpty())
+		out = rt::SS("{ }");
+	else
+		out += rt::SS("\n}");
+}
+
 LPCSTR JsonObject::_LocateValue(const rt::String_Ref& xpath, bool bDoNotSplitDot /* = false */) const
 {
 	if(_Doc.IsEmpty())return nullptr;
